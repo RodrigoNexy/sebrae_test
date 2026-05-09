@@ -302,6 +302,11 @@ Capturas abaixo referem-se às telas **servidas pelo Laravel** (`resources/views
 ### React (`frontend/`)
 
 Interface alternativa em SPA: login, lista e formulários consomem **`/api`** (Sanctum). Para visualizar, siga a secção [Frontend React](#frontend-react).
+<img width="1877" height="945" alt="image" src="https://github.com/user-attachments/assets/057848ce-3cb3-475b-bcc4-2a1a3def6451" />
+<img width="1872" height="947" alt="image" src="https://github.com/user-attachments/assets/ddff2299-98f7-4e21-9257-e74ff5a063e7" />
+<img width="1876" height="948" alt="image" src="https://github.com/user-attachments/assets/ba817660-e04a-4182-865d-ae0c17233837" />
+<img width="1870" height="949" alt="image" src="https://github.com/user-attachments/assets/14ede678-3014-4fa1-ac62-4385c76df67c" />
+
 
 ---
 
