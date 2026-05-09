@@ -1,136 +1,27 @@
 # CRUD de clientes — Laravel
 
-Aplicação em PHP/Laravel para cadastro de clientes (teste técnico), com ambiente containerizado.
+![PHP](https://img.shields.io/badge/PHP-8.3-777BB4?logo=php&logoColor=white)
+![Laravel](https://img.shields.io/badge/Laravel-12-FF2D20?logo=laravel&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
+
+> **Resumo:** aplicação web para cadastro de clientes (teste técnico), com **login**, **CRUD completo** protegido por autenticação e **preenchimento de endereço via CEP** (ViaCEP). O ambiente de desenvolvimento roda em **Docker Compose** (PHP/Laravel + MySQL).
+
+Checklist de fases de desenvolvimento: [`TASKS.md`](./TASKS.md).
+
+---
 
 ## Pré-requisitos
 
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/) (ou Docker Engine + Docker Compose v2)
-- Opcional (desenvolvimento fora do Docker): PHP ^8.2 e [Composer](https://getcomposer.org/)
+- Opcional (sem Docker): PHP ^8.2 e [Composer](https://getcomposer.org/)
 
 ---
 
-## O que já está configurado (Fase 1 — infraestrutura)
+## Execução
 
-### 1. Projeto Laravel
+Na **raiz do repositório** (onde está o `docker-compose.yml`):
 
-Foi criado o projeto na pasta `app/` com Composer:
-
-```bash
-composer create-project laravel/laravel app
-```
-
-Versão utilizada: **Laravel 12** (compatível com PHP ^8.2). O código da API e as rotas ficam em `app/`, conforme o padrão MVC do framework.
-
-### 2. Dockerfile da aplicação
-
-O arquivo `app/Dockerfile` define uma imagem **PHP 8.3 CLI** (`php:8.3-cli-bookworm`) com:
-
-- Extensões compiladas: **pdo_mysql**, **mbstring**, **pcntl**, **bcmath**, **zip**, **intl**
-- Ferramentas: **Git**, **Unzip**, **Composer 2**
-- Script de entrada `docker-entrypoint.sh`: instala dependências com Composer, gera `APP_KEY` se necessário, executa migrações e sobe o servidor embutido do Laravel
-
-O arquivo `app/.dockerignore` reduz o contexto de build (ignora `vendor/`, `node_modules/`, `.env`, etc.).
-
-### 3. Docker Compose (`docker-compose.yml`)
-
-Na raiz do repositório, o Compose sobe dois serviços:
-
-| Serviço | Descrição |
-|--------|-----------|
-| **laravel** | Build a partir de `app/Dockerfile`, monta o código em `./app`, expõe a aplicação na porta configurável (padrão **8000**). Usa **`php artisan serve`**. Container: **`testeseabre-laravel`**. |
-| **db** | **MySQL 8.0** com volume `mysql_data`. Container: **`testeseabre-db`**. |
-
-O projeto Compose chama-se **`testeseabre`** (`name:` no arquivo), então a imagem da aplicação aparece como **`testeseabre-laravel`** no Docker Desktop.
-
-**Comandos Artisan no container** (na pasta do repositório, com os containers no ar):
-
-```bash
-docker compose exec laravel php artisan migrate
-```
-
-Ou pelo nome do container:
-
-```bash
-docker exec testeseabre-laravel php artisan migrate
-```
-
-Variáveis de ambiente da aplicação apontam o Laravel para o host **`db`** na rede interna do Compose (`DB_CONNECTION=mysql`, etc.). Opcionalmente você pode criar um arquivo `.env` **na raiz** (veja `.env.example`) para ajustar portas e credenciais do MySQL sem editar o `docker-compose.yml`.
-
----
-
-## Fase 2 — Autenticação (Laravel Breeze)
-
-Foi adicionado o pacote oficial **[Laravel Breeze](https://laravel.com/docs/starter-kits#laravel-breeze)** (stack **Blade** + Vite), que fornece telas e fluxos de **login**, **registro**, **logout**, recuperação de senha e verificação de e-mail.
-
-Instalação (na pasta `app/`):
-
-```bash
-composer require laravel/breeze --dev
-php artisan breeze:install blade
-npm install && npm run build
-```
-
-O comando `breeze:install` só existe **depois** do `composer require`; no projeto isso já está aplicado.
-
-**Usuários (`users`):** a tabela segue a migration padrão do Laravel (`database/migrations/0001_01_01_000000_create_users_table.php`), com `name`, `email`, `password`, `remember_token`, etc. Rode **`php artisan migrate`** após clonar ou quando o banco estiver vazio.
-
-**Rotas já protegidas pelo Breeze:** `/dashboard` usa `middleware(['auth', 'verified'])`; rotas de **perfil** ficam em grupo com `middleware('auth')`. Visitantes não autenticados são redirecionados para o login.
-
-**Pendente (quando existir o CRUD):** as rotas de **clientes** precisam ser registradas com `middleware('auth')` (ou grupo equivalente). O Breeze **não** protege automaticamente rotas novas — ver `TASKS.md`.
-
----
-
-## Fase 3 — Tabela `clientes` (migration)
-
-Existe a migration `database/migrations/2026_05_09_200548_create_clientes_table.php`, que cria a tabela **`clientes`** com:
-
-| Campo       | Observação        |
-|------------|-------------------|
-| `nome`     | string            |
-| `email`    | string, **único** |
-| `telefone` | string (32)       |
-| `cep`      | string (9)        |
-| `rua`      | string            |
-| `bairro`   | string            |
-| `cidade`   | string            |
-| `estado`   | string (2), ex.: UF |
-| `created_at` / `updated_at` | timestamps |
-
-Para aplicar no banco (pasta `app/`):
-
-```bash
-php artisan migrate
-```
-
-No Docker (com containers no ar):
-
-```bash
-docker compose exec laravel php artisan migrate
-```
-
-O **Model** `Client` (`app/Models/Client.php`, tabela **`clientes`**) e o CRUD nas rotas/views entram nas próximas fases — ver `TASKS.md`.
-
----
-
-## Busca de CEP (ViaCEP)
-
-**Por que não a API oficial dos Correios:** não há acesso à API institucional neste momento (credenciais/contrato **CWS**, ambiente homologado etc.). Foi aberto chamado no **suporte dos Correios** pedindo orientação/acesso; o prazo informado é de **até 5 dias úteis** para retorno — até lá não é possível integrar de forma oficial.
-
-Enquanto isso, o formulário de clientes (`resources/views/clients/_form.blade.php`) consulta o CEP ao **sair do campo** (`blur`), usando a API pública **[ViaCEP](https://viacep.com.br/)** (`GET https://viacep.com.br/ws/{cep}/json/`). Os campos **rua**, **bairro**, **cidade** e **estado** são preenchidos com `logradouro`, `bairro`, `localidade` e `uf`. É a opção usual em desenvolvimento e atende ao objetivo da prova (endereço automático a partir do CEP).
-
-### Comprovante de contato ao suporte
-
-Substitua o placeholder abaixo pela imagem (por exemplo `![Legenda](./docs/print-correios.png)`):
-
-[print]
-
----
-
-## Como executar com Docker
-
-Na raiz do repositório (onde está o `docker-compose.yml`):
-
-1. (Opcional) Copie o exemplo de variáveis da raiz e ajuste se precisar:
+1. (Opcional) Copie o exemplo de variáveis da raiz:
 
    ```bash
    copy .env.example .env
@@ -144,9 +35,7 @@ Na raiz do repositório (onde está o `docker-compose.yml`):
    docker compose up --build
    ```
 
-3. Acesse no navegador: **http://localhost:8000** (ou a porta definida em `APP_PORT` no `.env` da raiz).
-
-Na primeira subida, o entrypoint pode rodar `composer install`, gerar chave da aplicação e `php artisan migrate` contra o MySQL.
+3. Acesse **http://localhost:8000** (ou a porta em `APP_PORT` no `.env` da raiz).
 
 Para rodar em segundo plano:
 
@@ -154,23 +43,179 @@ Para rodar em segundo plano:
 docker compose up --build -d
 ```
 
-Parar e remover containers (o volume do MySQL é mantido):
+Parar mantendo o volume do MySQL:
 
 ```bash
 docker compose down
 ```
 
-Para apagar também os dados do banco:
+Apagar também os dados do banco:
 
 ```bash
 docker compose down -v
 ```
 
+> Na primeira subida, o entrypoint do container **laravel** pode executar `composer install`, gerar `APP_KEY` e `php artisan migrate` contra o MySQL.
+
 ---
 
-## Desenvolvimento local sem Docker (opcional)
+## Ambiente Docker (visão geral)
 
-Entre na pasta `app/`, copie `.env.example` para `.env`, configure o banco (por exemplo SQLite, já previsto no `.env.example`) e execute:
+Os serviços **`laravel`** e **`db`** ficam na rede interna do Compose; o Laravel usa o hostname **`db`** para o MySQL.
+
+```mermaid
+flowchart LR
+  subgraph compose["Docker Compose (projeto testeseabre)"]
+    L["laravel\n(testeseabre-laravel)\nphp artisan serve :8000"]
+    D[("db — MySQL 8\n(testeseabre-db)")]
+  end
+  Browser(["Navegador\nlocalhost:APP_PORT"]) --> L
+  L --> D
+```
+
+| Serviço (Compose) | Container | Função |
+|-------------------|-----------|--------|
+| **laravel** | `testeseabre-laravel` | Build `app/Dockerfile`, volume `./app`, expõe **8000** (ou `APP_PORT`). |
+| **db** | `testeseabre-db` | MySQL 8, volume persistente `mysql_data`. |
+
+---
+
+## Variáveis de ambiente
+
+Dois contextos: **raiz** (só Compose) e **app/** (Laravel).
+
+### Raiz do repositório (`/.env`)
+
+Opcional; copie de [`.env.example`](./.env.example). Afeta principalmente portas e credenciais injetadas no Compose.
+
+| Variável | Descrição |
+|----------|-----------|
+| `APP_PORT` | Porta publicada da aplicação (padrão **8000**). |
+| `APP_ENV` / `APP_DEBUG` | Ambiente e modo debug no container. |
+| `DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD` | Banco MySQL usado pelo serviço **db** e referenciado pelo Laravel no Docker. |
+| `MYSQL_ROOT_PASSWORD` | Senha do root do MySQL. |
+| `FORWARD_DB_PORT` | Porta do MySQL no host (padrão **3306**). |
+
+### Pasta `app/` (`app/.env`)
+
+Copie de [`app/.env.example`](./app/.env.example). No **Docker**, parte desses valores é sobrescrita pelo ambiente do Compose (`DB_*`, `APP_URL`, etc.).
+
+| Variável | Descrição |
+|----------|-----------|
+| `APP_KEY` | Chave da aplicação (obrigatória; `php artisan key:generate`). |
+| `APP_URL` | URL base; deve coincidir com o que você abre no navegador (ex.: `http://localhost:8000`). |
+| `DB_*` | Conexão: no Docker costuma ser **mysql** e host **`db`**. |
+| `SESSION_DRIVER` | Ex.: `database` (exige tabela `sessions`). |
+| `SESSION_SECURE_COOKIE` | Em **HTTP** local, use **`false`** para evitar erro **419** (sessão/CSRF). |
+| `CACHE_STORE` / `QUEUE_CONNECTION` | Padrão `database` no exemplo (exige migrations de cache/jobs). |
+
+---
+
+## Infraestrutura: Laravel, Dockerfile e Compose
+
+### Projeto Laravel
+
+Criado na pasta `app/` com Composer (`composer create-project laravel/laravel app`). **Laravel 12**, PHP compatível **^8.2**; em Docker a imagem usa **PHP 8.3 CLI**.
+
+### Dockerfile (`app/Dockerfile`)
+
+Imagem **PHP 8.3 CLI** (`php:8.3-cli-bookworm`) com extensões **pdo_mysql**, **mbstring**, **pcntl**, **bcmath**, **zip**, **intl**, **Git**, **Unzip**, **Composer 2** e entrypoint `docker-entrypoint.sh` (dependências, `APP_KEY`, migrações, `php artisan serve`).
+
+O arquivo `app/.dockerignore` reduz o contexto de build.
+
+> **Comandos Artisan dentro do container** (com os serviços no ar, na pasta da raiz do repositório):
+>
+> ```bash
+> docker compose exec laravel php artisan migrate
+> ```
+>
+> Ou pelo nome do container:
+>
+> ```bash
+> docker exec testeseabre-laravel php artisan migrate
+> ```
+
+---
+
+## Autenticação com Laravel Breeze
+
+Pacote **[Laravel Breeze](https://laravel.com/docs/starter-kits#laravel-breeze)** (Blade + Vite): login, registro, logout, recuperação de senha e verificação de e-mail.
+
+Instalação de referência (já aplicada no projeto):
+
+```bash
+composer require laravel/breeze --dev
+php artisan breeze:install blade
+npm install && npm run build
+```
+
+A tabela **`users`** segue a migration padrão. Após clonar, execute **`php artisan migrate`** com o banco vazio.
+
+**Rotas:** `/dashboard` usa `middleware(['auth', 'verified'])`; o **CRUD de clientes** (`Route::resource('clientes', ClientController::class)`) está no mesmo grupo em `routes/web.php`.
+
+---
+
+## Modelagem da tabela `clientes` e CRUD
+
+Migration `database/migrations/2026_05_09_200548_create_clientes_table.php` — tabela **`clientes`**:
+
+| Campo | Observação |
+|-------|------------|
+| `nome` | string |
+| `email` | string, **único** |
+| `telefone` | string (32) |
+| `cep` | string (9) |
+| `rua`, `bairro`, `cidade` | string |
+| `estado` | string (2), UF |
+| `created_at` / `updated_at` | timestamps |
+
+**CRUD (resumo):**
+
+| Peça | Caminho |
+|------|---------|
+| Controller resource | `app/Http/Controllers/ClientController.php` |
+| Validação | `app/Http/Requests/ClientRequest.php` |
+| Views | `resources/views/clients/` (`index`, `create`, `edit`, `show`, `_form`) |
+| Rotas | `Route::resource('clientes', …)` com `auth` + `verified` |
+
+Exclusão com confirmação via `data-confirm` e script em `resources/views/layouts/app.blade.php`.
+
+---
+
+## Busca de CEP (ViaCEP)
+
+O formulário (`resources/views/clients/_form.blade.php`) consulta o CEP no **blur** do campo, via **[ViaCEP](https://viacep.com.br/)** (`GET https://viacep.com.br/ws/{cep}/json/`), preenchendo **rua**, **bairro**, **cidade** e **estado** a partir de `logradouro`, `bairro`, `localidade` e `uf`.
+
+<details>
+<summary><strong>Nota — API oficial dos Correios</strong></summary>
+
+Não há integração com a API institucional dos Correios (**CWS**/contrato/homologação) neste momento. Foi aberto chamado no suporte; prazo informado de **até 5 dias úteis** para retorno. Até lá a ViaCEP cobre o requisito de endereço automático no ambiente de desenvolvimento.
+
+**Comprovante de contato (substitua pelo seu arquivo ou pela URL da imagem):**
+
+```markdown
+![Comprovante suporte Correios](./docs/print-correios.png)
+```
+
+*(Adicione o print em `docs/` ou ajuste o caminho acima.)*
+
+</details>
+
+---
+
+## Interface (opcional)
+
+Uma captura de tela da aplicação em uso melhora a documentação. Substitua o caminho quando tiver o arquivo:
+
+```markdown
+![Lista de clientes — exemplo](./docs/screenshot-app.png)
+```
+
+---
+
+## Desenvolvimento local sem Docker
+
+Na pasta `app/`: copie `.env.example` para `.env`, configure o banco (ex.: SQLite) e:
 
 ```bash
 composer install
@@ -181,22 +226,19 @@ php artisan serve
 
 ---
 
-## Estrutura relevante
+## Estrutura do repositório
 
 ```text
 .
-├── docker-compose.yml      # app + MySQL
-├── .env.example            # variáveis opcionais para o Compose (raiz)
+├── docker-compose.yml
+├── .env.example          # variáveis opcionais para o Compose (raiz)
 ├── README.md
 └── app/
     ├── Dockerfile
     ├── docker-entrypoint.sh
-    ├── .dockerignore
-    └── ...                  # projeto Laravel
+    ├── .env.example      # Laravel
+    └── …                 # projeto Laravel (app/, resources/, routes/, …)
 ```
 
 ---
 
-## Próximos passos (conforme `TASKS.md`)
-
-- Revisão final do README e instruções de entrega no GitHub (repositório público).
