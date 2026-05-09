@@ -44,6 +44,60 @@ Variáveis de ambiente da aplicação apontam o Laravel para o host **`db`** na 
 
 ---
 
+## Fase 2 — Autenticação (Laravel Breeze)
+
+Foi adicionado o pacote oficial **[Laravel Breeze](https://laravel.com/docs/starter-kits#laravel-breeze)** (stack **Blade** + Vite), que fornece telas e fluxos de **login**, **registro**, **logout**, recuperação de senha e verificação de e-mail.
+
+Instalação (na pasta `app/`):
+
+```bash
+composer require laravel/breeze --dev
+php artisan breeze:install blade
+npm install && npm run build
+```
+
+O comando `breeze:install` só existe **depois** do `composer require`; no projeto isso já está aplicado.
+
+**Usuários (`users`):** a tabela segue a migration padrão do Laravel (`database/migrations/0001_01_01_000000_create_users_table.php`), com `name`, `email`, `password`, `remember_token`, etc. Rode **`php artisan migrate`** após clonar ou quando o banco estiver vazio.
+
+**Rotas já protegidas pelo Breeze:** `/dashboard` usa `middleware(['auth', 'verified'])`; rotas de **perfil** ficam em grupo com `middleware('auth')`. Visitantes não autenticados são redirecionados para o login.
+
+**Pendente (quando existir o CRUD):** as rotas de **clientes** precisam ser registradas com `middleware('auth')` (ou grupo equivalente). O Breeze **não** protege automaticamente rotas novas — ver `TASKS.md`.
+
+---
+
+## Fase 3 — Tabela `clientes` (migration)
+
+Existe a migration `database/migrations/2026_05_09_200548_create_clientes_table.php`, que cria a tabela **`clientes`** com:
+
+| Campo       | Observação        |
+|------------|-------------------|
+| `nome`     | string            |
+| `email`    | string, **único** |
+| `telefone` | string (32)       |
+| `cep`      | string (9)        |
+| `rua`      | string            |
+| `bairro`   | string            |
+| `cidade`   | string            |
+| `estado`   | string (2), ex.: UF |
+| `created_at` / `updated_at` | timestamps |
+
+Para aplicar no banco (pasta `app/`):
+
+```bash
+php artisan migrate
+```
+
+No Docker (com containers no ar):
+
+```bash
+docker compose exec app php artisan migrate
+```
+
+O **Model** `Cliente` e o CRUD nas rotas/views entram nas próximas fases — ver `TASKS.md`.
+
+---
+
 ## Como executar com Docker
 
 Na raiz do repositório (onde está o `docker-compose.yml`):
@@ -88,7 +142,7 @@ docker compose down -v
 
 ## Desenvolvimento local sem Docker (opcional)
 
-Entre na pasta `app/`, copie `env.example` para `.env`, configure o banco (por exemplo SQLite, já previsto no `.env.example`) e execute:
+Entre na pasta `app/`, copie `.env.example` para `.env`, configure o banco (por exemplo SQLite, já previsto no `.env.example`) e execute:
 
 ```bash
 composer install
@@ -117,4 +171,6 @@ php artisan serve
 
 ## Próximos passos (conforme `TASKS.md`)
 
-Autenticação, CRUD de clientes, integração de CEP e documentação final de entrega serão acrescentados nas fases seguintes.
+- Model `Cliente`, `ClienteController`, Form Request, views Blade e rotas `resource` com middleware `auth`.
+- Integração de CEP (ex.: ViaCEP) no formulário.
+- Revisão final do README e instruções de entrega no GitHub.
