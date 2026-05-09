@@ -37,8 +37,22 @@ Na raiz do repositório, o Compose sobe dois serviços:
 
 | Serviço | Descrição |
 |--------|-----------|
-| **app** | Build a partir de `app/Dockerfile`, monta o código em `./app`, expõe a aplicação na porta configurável (padrão **8000**). Usa **`php artisan serve`** (não é obrigatório Nginx para este fluxo). |
-| **db** | **MySQL 8.0** com volume nomeado `mysql_data` para persistir dados. |
+| **laravel** | Build a partir de `app/Dockerfile`, monta o código em `./app`, expõe a aplicação na porta configurável (padrão **8000**). Usa **`php artisan serve`**. Container: **`testeseabre-laravel`**. |
+| **db** | **MySQL 8.0** com volume `mysql_data`. Container: **`testeseabre-db`**. |
+
+O projeto Compose chama-se **`testeseabre`** (`name:` no arquivo), então a imagem da aplicação aparece como **`testeseabre-laravel`** no Docker Desktop.
+
+**Comandos Artisan no container** (na pasta do repositório, com os containers no ar):
+
+```bash
+docker compose exec laravel php artisan migrate
+```
+
+Ou pelo nome do container:
+
+```bash
+docker exec testeseabre-laravel php artisan migrate
+```
 
 Variáveis de ambiente da aplicação apontam o Laravel para o host **`db`** na rede interna do Compose (`DB_CONNECTION=mysql`, etc.). Opcionalmente você pode criar um arquivo `.env` **na raiz** (veja `.env.example`) para ajustar portas e credenciais do MySQL sem editar o `docker-compose.yml`.
 
@@ -91,10 +105,10 @@ php artisan migrate
 No Docker (com containers no ar):
 
 ```bash
-docker compose exec app php artisan migrate
+docker compose exec laravel php artisan migrate
 ```
 
-O **Model** `Cliente` e o CRUD nas rotas/views entram nas próximas fases — ver `TASKS.md`.
+O **Model** `Client` (`app/Models/Client.php`, tabela **`clientes`**) e o CRUD nas rotas/views entram nas próximas fases — ver `TASKS.md`.
 
 ---
 
@@ -171,6 +185,6 @@ php artisan serve
 
 ## Próximos passos (conforme `TASKS.md`)
 
-- Model `Cliente`, `ClienteController`, Form Request, views Blade e rotas `resource` com middleware `auth`.
+- Model `Client`, `ClienteController`, Form Request, views Blade e rotas `resource` com middleware `auth`.
 - Integração de CEP (ex.: ViaCEP) no formulário.
 - Revisão final do README e instruções de entrega no GitHub.

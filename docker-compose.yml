@@ -1,9 +1,12 @@
+# Nome fixo do projeto → imagens tipo testeseabre-laravel, rede testeseabre_default
+name: testeseabre
+
 services:
-  app:
+  laravel:
     build:
       context: ./app
       dockerfile: Dockerfile
-    container_name: seabre-app
+    container_name: testeseabre-laravel
     restart: unless-stopped
     ports:
       - "${APP_PORT:-8000}:8000"
@@ -25,7 +28,7 @@ services:
 
   db:
     image: mysql:8.0
-    container_name: seabre-db
+    container_name: testeseabre-db
     restart: unless-stopped
     ports:
       - "${FORWARD_DB_PORT:-3306}:3306"
