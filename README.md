@@ -2,9 +2,10 @@
 
 ![PHP](https://img.shields.io/badge/PHP-8.3-777BB4?logo=php&logoColor=white)
 ![Laravel](https://img.shields.io/badge/Laravel-12-FF2D20?logo=laravel&logoColor=white)
+![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
 
-> **Resumo:** aplicação web para cadastro de clientes (teste técnico), com **login**, **CRUD completo** protegido por autenticação e **preenchimento de endereço via CEP** (ViaCEP). O ambiente de desenvolvimento roda em **Docker Compose** (PHP/Laravel + MySQL).
+> **Resumo:** aplicação para cadastro de clientes (teste técnico), com **login**, **CRUD completo** protegido por autenticação e **preenchimento de endereço via CEP** (ViaCEP). O **backend** é **Laravel 12** (telas **Blade** com Breeze + **API REST** com **Sanctum**). O **frontend** em **`frontend/`** é uma **SPA em React** (TypeScript, Vite, Tailwind) que consome a mesma API. O ambiente Docker Compose sobe **PHP/Laravel + MySQL**; o React roda à parte no host com `npm run dev`.
 
 Checklist de fases de desenvolvimento: [`TASKS.md`](./TASKS.md).
 
@@ -13,7 +14,8 @@ Checklist de fases de desenvolvimento: [`TASKS.md`](./TASKS.md).
 ## Pré-requisitos
 
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/) (ou Docker Engine + Docker Compose v2)
-- Opcional (sem Docker): PHP ^8.2 e [Composer](https://getcomposer.org/)
+- Para o **frontend React**: [Node.js](https://nodejs.org/) **20+** (recomendado; compatível com o Vite do projeto) e npm
+- Opcional (sem Docker no backend): PHP ^8.2 e [Composer](https://getcomposer.org/)
 
 ---
 
@@ -59,6 +61,88 @@ docker compose down -v
 
 ---
 
+## Frontend React
+
+SPA independente do build Blade do Laravel: **React 19**, **TypeScript**, **Vite 6**, **Tailwind CSS 4** e **React Router**. Implementa **login**, **registro**, **listagem paginada**, **criação/edição** de clientes e **ViaCEP** no formulário, falando com o Laravel apenas via **HTTP JSON** (`/api/...`).
+
+### Autenticação e API
+
+- **Laravel Sanctum** emite tokens **Bearer** (`POST /api/login`, `POST /api/register`; rotas protegidas com `auth:sanctum`).
+- Rotas definidas em [`app/routes/api.php`](./app/routes/api.php) (prefixo automático **`/api`**).
+- O React guarda o token em `localStorage` e envia o header `Authorization` nas chamadas autenticadas.
+- Lista completa de métodos, paths e corpos JSON: secção [Referência da API REST](#referência-da-api-rest).
+
+### Executar o frontend em desenvolvimento
+
+Com o **Laravel acessível em `http://localhost:8000`** (Docker Compose ou `php artisan serve`):
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Abra **http://localhost:5173**. O Vite está configurado para **proxy** de **`/api`** para **`http://localhost:8000`**, assim o navegador chama apenas o origin do Vite e evita problemas de CORS no dia a dia.
+
+### Build de produção (frontend)
+
+```bash
+cd frontend
+npm run build
+```
+
+O resultado fica em `frontend/dist/`. Para servir esse build junto ao Laravel ou atrás de um CDN, configure a URL da API se não houver proxy (variável **`VITE_API_URL`** apontando para o host do Laravel).
+
+### Variáveis opcionais (`frontend/.env`)
+
+Copie [`frontend/.env.example`](./frontend/.env.example) para `frontend/.env` se precisar ajustar links ou API absoluta:
+
+| Variável | Descrição |
+|----------|-----------|
+| `VITE_LARAVEL_URL` | URL base do Laravel usada no link “Blade” do layout (ex.: `http://localhost:8000`). |
+| `VITE_API_URL` | Se preenchida, prefixa todas as chamadas da camada HTTP (útil sem proxy ou em deploy separado). Deixe vazio no dev com Vite para usar caminhos relativos `/api`. |
+
+### Organização útil no código React
+
+| Área | Pasta / ficheiros |
+|------|-------------------|
+| Chamadas HTTP e token | `frontend/src/api/` (`http.ts`, `auth.ts`, `clientes.ts`) |
+| Rotas e páginas | `frontend/src/App.tsx`, `frontend/src/pages/` |
+| Estilos e tokens UI | `frontend/src/index.css` (classes `ui-*`) |
+
+---
+
+## Referência da API REST
+
+Base **`{APP_URL}/api`** (ex.: **`http://localhost:8000/api`**). Envie **`Accept: application/json`**; nos fluxos de escrita, **`Content-Type: application/json`**.
+
+### Autenticação (Laravel Sanctum)
+
+| Método | Endpoint | Protegida | Corpo JSON | Resposta / notas |
+|--------|----------|-----------|------------|------------------|
+| `POST` | `/api/register` | Não | `name`, `email`, `password`, `password_confirmation` | **201** — `token`, `token_type` (`Bearer`), `user` (`id`, `name`, `email`, …). |
+| `POST` | `/api/login` | Não | `email`, `password` | **200** — mesmo formato do registo (novo token **Bearer**). |
+| `GET` | `/api/user` | Sim (`Authorization: Bearer …`) | — | **200** — `{ "user": { … } }`. |
+| `POST` | `/api/logout` | Sim | — | **200** — revoga o token atual; corpo típico `{ "message": "OK" }`. |
+
+Erros de validação seguem o formato Laravel (**422** com `message` e `errors` por campo).
+
+### Clientes (`ClientRequest`)
+
+Todas as rotas abaixo exigem **`Authorization: Bearer <token>`**.
+
+| Método | Endpoint | Descrição |
+|--------|----------|-----------|
+| `GET` | `/api/clientes` | Lista **paginada** (`?page=`, opcional `per_page` até 100). JSON no formato padrão do paginator Laravel (`data`, `current_page`, …). |
+| `POST` | `/api/clientes` | Cria registo. Corpo: `nome`, `email`, `telefone`, `cep`, `rua`, `bairro`, `cidade`, `estado` (UF, 2 caracteres). |
+| `GET` | `/api/clientes/{id}` | Detalhe de um cliente (`id` numérico da tabela `clientes`). |
+| `PUT` ou `PATCH` | `/api/clientes/{id}` | Atualização (mesmos campos do `POST`). |
+| `DELETE` | `/api/clientes/{id}` | Remove o cliente. **204** sem corpo em sucesso. |
+
+Definição das rotas: [`app/routes/api.php`](./app/routes/api.php). Controladores: `App\Http\Controllers\Api\AuthController` e `App\Http\Controllers\Api\ClientController`.
+
+---
+
 ## Ambiente Docker (visão geral)
 
 Os serviços **`laravel`** e **`db`** ficam na rede interna do Compose; o Laravel usa o hostname **`db`** para o MySQL.
@@ -82,7 +166,7 @@ flowchart LR
 
 ## Variáveis de ambiente
 
-Dois contextos: **raiz** (só Compose) e **app/** (Laravel).
+Três contextos: **raiz** (Compose), **`app/`** (Laravel) e opcionalmente **`frontend/`** (Vite).
 
 ### Raiz do repositório (`/.env`)
 
@@ -108,6 +192,10 @@ Copie de [`app/.env.example`](./app/.env.example). No **Docker**, parte desses v
 | `SESSION_DRIVER` | Ex.: `database` (exige tabela `sessions`). |
 | `SESSION_SECURE_COOKIE` | Em **HTTP** local, use **`false`** para evitar erro **419** (sessão/CSRF). |
 | `CACHE_STORE` / `QUEUE_CONNECTION` | Padrão `database` no exemplo (exige migrations de cache/jobs). |
+
+### Pasta `frontend/` (`frontend/.env`)
+
+Opcional; ver secção [Frontend React](#frontend-react). O ficheiro não é usado pelo Docker Compose.
 
 ---
 
@@ -153,6 +241,8 @@ A tabela **`users`** segue a migration padrão. Após clonar, execute **`php art
 
 **Rotas:** `/dashboard` usa `middleware(['auth', 'verified'])`; o **CRUD de clientes** (`Route::resource('clientes', ClientController::class)`) está no mesmo grupo em `routes/web.php`.
 
+A **API JSON** para o React está em `routes/api.php` (`App\Http\Controllers\Api\…`), com as mesmas regras de validação (`ClientRequest`) no recurso de clientes.
+
 ---
 
 ## Modelagem da tabela `clientes` e CRUD
@@ -177,8 +267,9 @@ Migration `database/migrations/2026_05_09_200548_create_clientes_table.php` — 
 | Validação | `app/Http/Requests/ClientRequest.php` |
 | Views | `resources/views/clients/` (`index`, `create`, `edit`, `show`, `_form`) |
 | Rotas | `Route::resource('clientes', …)` com `auth` + `verified` |
+| API (React) | `Route::apiResource('clientes', Api\ClientController::class)` com `auth:sanctum` em `routes/api.php` |
 
-Exclusão com confirmação via `data-confirm` e script em `resources/views/layouts/app.blade.php`.
+Exclusão com confirmação via `data-confirm` e script em `resources/views/layouts/app.blade.php` (Blade). No React, a exclusão usa `confirm()` do navegador antes de `DELETE /api/clientes/{id}`.
 
 ---
 
@@ -199,9 +290,18 @@ Não há integração com a API institucional dos Correios (**CWS**/contrato/hom
 ---
 
 ## Interface
+
+### Blade (Laravel Breeze)
+
+Capturas abaixo referem-se às telas **servidas pelo Laravel** (`resources/views/…`).
+
 <img width="1880" height="947" alt="image" src="https://github.com/user-attachments/assets/a52ede5f-364f-4d74-9b47-481f04fafc4b" />
 <img width="1841" height="685" alt="image" src="https://github.com/user-attachments/assets/b8414e27-eb38-4613-867f-aee411f85b96" />
 <img width="1879" height="942" alt="image" src="https://github.com/user-attachments/assets/274f0cf3-bf16-46fc-af31-9114bce4073f" />
+
+### React (`frontend/`)
+
+Interface alternativa em SPA: login, lista e formulários consomem **`/api`** (Sanctum). Para visualizar, siga a secção [Frontend React](#frontend-react).
 
 ---
 
@@ -216,6 +316,8 @@ php artisan migrate
 php artisan serve
 ```
 
+Em outro terminal, na pasta `frontend/`: `npm install` e `npm run dev` (Laravel em `http://127.0.0.1:8000` alinhado ao proxy do Vite).
+
 ---
 
 ## Estrutura do repositório
@@ -223,13 +325,22 @@ php artisan serve
 ```text
 .
 ├── docker-compose.yml
-├── .env.example          # variáveis opcionais para o Compose (raiz)
+├── .env.example              # variáveis opcionais para o Compose (raiz)
 ├── README.md
-└── app/
+├── frontend/                 # SPA React (Vite, TypeScript, Tailwind)
+│   ├── package.json
+│   ├── .env.example
+│   ├── src/
+│   │   ├── api/              # cliente HTTP, auth, clientes
+│   │   ├── pages/
+│   │   ├── index.css         # tokens e classes ui-*
+│   │   └── …
+│   └── …
+└── app/                      # projeto Laravel
     ├── Dockerfile
     ├── docker-entrypoint.sh
-    ├── .env.example      # Laravel
-    └── …                 # projeto Laravel (app/, resources/, routes/, …)
+    ├── .env.example          # Laravel
+    └── …                     # app/, resources/, routes/, …
 ```
 
 ---
