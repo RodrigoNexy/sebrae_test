@@ -16,6 +16,8 @@ services:
       APP_ENV: "${APP_ENV:-local}"
       APP_DEBUG: "${APP_DEBUG:-true}"
       APP_URL: "http://localhost:${APP_PORT:-8000}"
+      SESSION_SECURE_COOKIE: "false"
+      SESSION_SAME_SITE: "lax"
       DB_CONNECTION: mysql
       DB_HOST: db
       DB_PORT: "3306"
