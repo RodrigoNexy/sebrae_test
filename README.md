@@ -112,6 +112,14 @@ O **Model** `Client` (`app/Models/Client.php`, tabela **`clientes`**) e o CRUD n
 
 ---
 
+## Busca de CEP (ViaCEP)
+
+O formulário de clientes (`resources/views/clients/_form.blade.php`) consulta o CEP ao **sair do campo** (`blur`), usando a API pública **[ViaCEP](https://viacep.com.br/)** (`GET https://viacep.com.br/ws/{cep}/json/`). Os campos **rua**, **bairro**, **cidade** e **estado** são preenchidos com `logradouro`, `bairro`, `localidade` e `uf`.
+
+A API oficial dos Correios exige **contrato comercial**, token no **CWS** etc.; para este projeto optou-se pela **ViaCEP**, solução usual em desenvolvimento e compatível com o objetivo da prova (endereço automático a partir do CEP).
+
+---
+
 ## Como executar com Docker
 
 Na raiz do repositório (onde está o `docker-compose.yml`):
@@ -185,6 +193,4 @@ php artisan serve
 
 ## Próximos passos (conforme `TASKS.md`)
 
-- Model `Client`, `ClienteController`, Form Request, views Blade e rotas `resource` com middleware `auth`.
-- Integração de CEP (ex.: ViaCEP) no formulário.
-- Revisão final do README e instruções de entrega no GitHub.
+- Revisão final do README e instruções de entrega no GitHub (repositório público).
