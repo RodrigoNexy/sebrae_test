@@ -191,25 +191,17 @@ O formulário (`resources/views/clients/_form.blade.php`) consulta o CEP no **bl
 
 Não há integração com a API institucional dos Correios (**CWS**/contrato/homologação) neste momento. Foi aberto chamado no suporte; prazo informado de **até 5 dias úteis** para retorno. Até lá a ViaCEP cobre o requisito de endereço automático no ambiente de desenvolvimento.
 
-**Comprovante de contato (substitua pelo seu arquivo ou pela URL da imagem):**
-
-```markdown
-![Comprovante suporte Correios](./docs/print-correios.png)
-```
-
-*(Adicione o print em `docs/` ou ajuste o caminho acima.)*
+**Comprovante de contato:**
 
 </details>
+<img width="1600" height="801" alt="image" src="https://github.com/user-attachments/assets/898d3cca-ca55-442b-8dfe-dea2b620601f" />
 
 ---
 
-## Interface (opcional)
-
-Uma captura de tela da aplicação em uso melhora a documentação. Substitua o caminho quando tiver o arquivo:
-
-```markdown
-![Lista de clientes — exemplo](./docs/screenshot-app.png)
-```
+## Interface
+<img width="1880" height="947" alt="image" src="https://github.com/user-attachments/assets/a52ede5f-364f-4d74-9b47-481f04fafc4b" />
+<img width="1841" height="685" alt="image" src="https://github.com/user-attachments/assets/b8414e27-eb38-4613-867f-aee411f85b96" />
+<img width="1879" height="942" alt="image" src="https://github.com/user-attachments/assets/274f0cf3-bf16-46fc-af31-9114bce4073f" />
 
 ---
 
