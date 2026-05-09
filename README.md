@@ -114,9 +114,15 @@ O **Model** `Client` (`app/Models/Client.php`, tabela **`clientes`**) e o CRUD n
 
 ## Busca de CEP (ViaCEP)
 
-O formulário de clientes (`resources/views/clients/_form.blade.php`) consulta o CEP ao **sair do campo** (`blur`), usando a API pública **[ViaCEP](https://viacep.com.br/)** (`GET https://viacep.com.br/ws/{cep}/json/`). Os campos **rua**, **bairro**, **cidade** e **estado** são preenchidos com `logradouro`, `bairro`, `localidade` e `uf`.
+**Por que não a API oficial dos Correios:** não há acesso à API institucional neste momento (credenciais/contrato **CWS**, ambiente homologado etc.). Foi aberto chamado no **suporte dos Correios** pedindo orientação/acesso; o prazo informado é de **até 5 dias úteis** para retorno — até lá não é possível integrar de forma oficial.
 
-A API oficial dos Correios exige **contrato comercial**, token no **CWS** etc.; para este projeto optou-se pela **ViaCEP**, solução usual em desenvolvimento e compatível com o objetivo da prova (endereço automático a partir do CEP).
+Enquanto isso, o formulário de clientes (`resources/views/clients/_form.blade.php`) consulta o CEP ao **sair do campo** (`blur`), usando a API pública **[ViaCEP](https://viacep.com.br/)** (`GET https://viacep.com.br/ws/{cep}/json/`). Os campos **rua**, **bairro**, **cidade** e **estado** são preenchidos com `logradouro`, `bairro`, `localidade` e `uf`. É a opção usual em desenvolvimento e atende ao objetivo da prova (endereço automático a partir do CEP).
+
+### Comprovante de contato ao suporte
+
+Substitua o placeholder abaixo pela imagem (por exemplo `![Legenda](./docs/print-correios.png)`):
+
+[print]
 
 ---
 
